@@ -3,6 +3,7 @@ module github.com/bdzhalalov/kolikosoft-trade
 go 1.25.4
 
 require (
+	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/lib/pq v1.11.2 // indirect
