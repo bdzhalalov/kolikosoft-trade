@@ -15,7 +15,7 @@ RUN go build -o ./cmd main.go
 FROM alpine AS runner
 
 COPY --from=builder /var/www/cmd /
-COPY config /config
+COPY pkg/config /config
 
 WORKDIR /var/www/
 
