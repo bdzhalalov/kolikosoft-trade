@@ -12,6 +12,7 @@ import (
 type RepositoryInterface interface {
 	GetUserById(ctx context.Context, userId int64) (domain.User, error)
 	WithdrawFromUserBalance(ctx context.Context, userId int64, amount int64, requestId string) (domain.Withdrawal, error)
+	GetUserBalanceHistory(ctx context.Context, userId int64) ([]domain.Withdrawal, error)
 }
 
 type Service struct {
@@ -59,4 +60,41 @@ func (s *Service) WithdrawFromBalance(
 	}
 
 	return dto, nil
+}
+
+func (s *Service) GetBalanceHistory(ctx context.Context, userId int64) ([]BalanceHistoryResponseDTO, *customError.BaseError) {
+	_, err := s.repository.GetUserById(ctx, userId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []BalanceHistoryResponseDTO{}, (&customError.NotFoundError{}).New("User not found")
+		}
+
+		s.logger.Errorf("Error while getting user by ID: %s", err)
+
+		return []BalanceHistoryResponseDTO{}, (&customError.InternalServerError{}).New()
+	}
+
+	res, err := s.repository.GetUserBalanceHistory(ctx, userId)
+	if err != nil {
+		s.logger.Errorf("Error while getting user balance history by ID: %s", err)
+		return []BalanceHistoryResponseDTO{}, (&customError.InternalServerError{}).New()
+	}
+
+	return s.getDTOFromStruct(res), nil
+}
+
+func (s *Service) getDTOFromStruct(history []domain.Withdrawal) []BalanceHistoryResponseDTO {
+	DTOs := make([]BalanceHistoryResponseDTO, 0, len(history))
+
+	for _, h := range history {
+		DTOs = append(DTOs, BalanceHistoryResponseDTO{
+			UserId:        h.UserId,
+			Amount:        h.Amount,
+			BalanceBefore: h.BalanceBefore,
+			BalanceAfter:  h.BalanceAfter,
+			CreatedAt:     h.CreatedAt,
+		})
+	}
+
+	return DTOs
 }

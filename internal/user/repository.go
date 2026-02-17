@@ -102,3 +102,44 @@ func (r *Repository) WithdrawFromUserBalance(
 
 	return res, nil
 }
+
+func (r *Repository) GetUserBalanceHistory(ctx context.Context, userId int64) ([]domain.Withdrawal, error) {
+	const query = `
+		SELECT user_id, amount, balance_before, balance_after, created_at
+		FROM balance_withdrawals
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, userId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var history []domain.Withdrawal
+
+	for rows.Next() {
+		var w domain.Withdrawal
+
+		err := rows.Scan(
+			&w.UserId,
+			&w.Amount,
+			&w.BalanceBefore,
+			&w.BalanceAfter,
+			&w.CreatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		history = append(history, w)
+	}
+
+	// ОБЯЗАТЕЛЬНО проверить ошибку rows
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return history, nil
+}
