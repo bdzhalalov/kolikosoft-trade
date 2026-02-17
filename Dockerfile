@@ -12,10 +12,12 @@ COPY . ./
 
 RUN go build -o ./cmd main.go
 
+RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.17.1
+
 FROM alpine AS runner
 
 COPY --from=builder /var/www/cmd /
-COPY pkg/config /config
+COPY --from=builder /go/bin/migrate /usr/local/bin/migrate
 
 WORKDIR /var/www/
 
