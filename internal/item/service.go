@@ -49,7 +49,7 @@ func (s *Service) buildResponse(tradable []domain.ClientResponseItem, untradable
 		if item.MarketHashName == "" {
 			continue
 		}
-
+		minPrice := item.MinPrice
 		items[item.MarketHashName] = &GetItemsResponseDto{
 			MarketHashName:     item.MarketHashName,
 			Version:            item.Version,
@@ -63,7 +63,7 @@ func (s *Service) buildResponse(tradable []domain.ClientResponseItem, untradable
 			Quantity:           item.Quantity,
 			CreatedAt:          item.CreatedAt,
 			UpdatedAt:          item.UpdatedAt,
-			TradableMinPrice:   item.MinPrice,
+			TradableMinPrice:   &minPrice,
 			UntradableMinPrice: nil,
 		}
 	}
@@ -74,8 +74,9 @@ func (s *Service) buildResponse(tradable []domain.ClientResponseItem, untradable
 			continue
 		}
 
+		minPrice := item.MinPrice
 		if existing, ok := items[item.MarketHashName]; ok {
-			existing.UntradableMinPrice = item.MinPrice
+			existing.UntradableMinPrice = &minPrice
 			continue
 		}
 
@@ -93,7 +94,7 @@ func (s *Service) buildResponse(tradable []domain.ClientResponseItem, untradable
 			CreatedAt:          item.CreatedAt,
 			UpdatedAt:          item.UpdatedAt,
 			TradableMinPrice:   nil,
-			UntradableMinPrice: item.MinPrice,
+			UntradableMinPrice: &minPrice,
 		}
 	}
 
