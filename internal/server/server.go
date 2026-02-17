@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/bdzhalalov/kolikosoft-trade/internal/item"
+	"github.com/bdzhalalov/kolikosoft-trade/pkg/cache"
 	"github.com/bdzhalalov/kolikosoft-trade/pkg/config"
 	"github.com/bdzhalalov/kolikosoft-trade/pkg/database"
 	"github.com/bdzhalalov/kolikosoft-trade/pkg/logger"
@@ -18,7 +19,8 @@ func Start(ctx context.Context, config *config.Config) {
 
 	httpClient := &http.Client{}
 	skinPortClient := item.NewSkinPortClient(httpClient, config.SkinPortBaseURL)
-	itemService := item.NewService(skinPortClient, log)
+	c := cache.New()
+	itemService := item.NewService(skinPortClient, log, c)
 
 	itemHandler := item.NewHandler(itemService)
 

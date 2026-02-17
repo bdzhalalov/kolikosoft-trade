@@ -3,8 +3,10 @@ package item
 import (
 	"context"
 	"github.com/bdzhalalov/kolikosoft-trade/internal/item/domain"
+	"github.com/bdzhalalov/kolikosoft-trade/pkg/cache"
 	customError "github.com/bdzhalalov/kolikosoft-trade/pkg/error"
 	"github.com/sirupsen/logrus"
+	"time"
 )
 
 type ExternalAPIClient interface {
@@ -14,31 +16,40 @@ type ExternalAPIClient interface {
 type Service struct {
 	client ExternalAPIClient
 	logger *logrus.Logger
+	cache  *cache.Cache
 }
 
-func NewService(client ExternalAPIClient, logger *logrus.Logger) *Service {
+func NewService(client ExternalAPIClient, logger *logrus.Logger, cache *cache.Cache) *Service {
 	return &Service{
 		client: client,
 		logger: logger,
+		cache:  cache,
 	}
 }
 
 func (s *Service) GetItems(ctx context.Context) ([]GetItemsResponseDto, *customError.BaseError) {
-	tradableItems, err := s.client.GetItems(ctx, nil)
-	if err != nil {
-		s.logger.Errorf("Error while getting tradable items: %s", err)
-		return nil, (&customError.InternalServerError{}).New()
-	}
+	items, exists := s.cache.Get("items")
+	if !exists {
+		tradableItems, err := s.client.GetItems(ctx, nil)
+		if err != nil {
+			s.logger.Errorf("Error while getting tradable items: %s", err)
+			return nil, (&customError.InternalServerError{}).New()
+		}
 
-	untradableItems, err := s.client.GetItems(ctx, map[string]string{
-		"tradable": "0",
-	})
-	if err != nil {
-		s.logger.Errorf("Error while getting untradable items: %s", err)
-		return nil, (&customError.InternalServerError{}).New()
-	}
+		untradableItems, err := s.client.GetItems(ctx, map[string]string{
+			"tradable": "0",
+		})
+		if err != nil {
+			s.logger.Errorf("Error while getting untradable items: %s", err)
+			return nil, (&customError.InternalServerError{}).New()
+		}
 
-	return s.buildResponse(tradableItems, untradableItems), nil
+		result := s.buildResponse(tradableItems, untradableItems)
+		s.cache.Set("items", result, 5*time.Minute)
+
+		return result, nil
+	}
+	return items.([]GetItemsResponseDto), nil
 }
 
 func (s *Service) buildResponse(tradable []domain.ClientResponseItem, untradable []domain.ClientResponseItem) []GetItemsResponseDto {
