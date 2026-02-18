@@ -91,8 +91,6 @@ func (r *Repository) WithdrawFromUserBalance(
 		&res.CreatedAt,
 	)
 	if err != nil {
-		// если вдруг пришёл дубль request_id (гоночный retry) — можно вернуть существующую запись
-		// но если у тебя request_id стабилен, сюда почти не попадёшь
 		return domain.Withdrawal{}, err
 	}
 
@@ -136,7 +134,6 @@ func (r *Repository) GetUserBalanceHistory(ctx context.Context, userId int64) ([
 		history = append(history, w)
 	}
 
-	// ОБЯЗАТЕЛЬНО проверить ошибку rows
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
